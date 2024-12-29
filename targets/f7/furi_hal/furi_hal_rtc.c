@@ -241,6 +241,9 @@ void furi_hal_rtc_reset_registers(void) {
     data->magic = FURI_HAL_RTC_HEADER_MAGIC;
     data->version = FURI_HAL_RTC_HEADER_VERSION;
     furi_hal_rtc_set_register(FuriHalRtcRegisterHeader, data_reg);
+
+    // Initialize extended flags register
+    furi_hal_rtc_set_register(FuriHalRtcRegisterExtendedFlags, 0);
 }
 
 uint32_t furi_hal_rtc_get_register(FuriHalRtcRegister reg) {
@@ -300,10 +303,16 @@ FuriHalRtcLogBaudRate furi_hal_rtc_get_log_baud_rate(void) {
 }
 
 void furi_hal_rtc_set_flag(FuriHalRtcFlag flag) {
-    uint32_t data_reg = furi_hal_rtc_get_register(FuriHalRtcRegisterSystem);
-    SystemReg* data = (SystemReg*)&data_reg;
-    data->flags |= flag;
-    furi_hal_rtc_set_register(FuriHalRtcRegisterSystem, data_reg);
+    if(flag <= (1 << 7)) { // Original flags
+        uint32_t data_reg = furi_hal_rtc_get_register(FuriHalRtcRegisterSystem);
+        SystemReg* data = (SystemReg*)&data_reg;
+        data->flags |= flag;
+        furi_hal_rtc_set_register(FuriHalRtcRegisterSystem, data_reg);
+    } else { // Extended flags
+        uint32_t ext_flags = furi_hal_rtc_get_register(FuriHalRtcRegisterExtendedFlags);
+        ext_flags |= (flag >> 8); // Shift back to use first bits of new register
+        furi_hal_rtc_set_register(FuriHalRtcRegisterExtendedFlags, ext_flags);
+    }
 
     if(flag & FuriHalRtcFlagDebug) {
         furi_hal_debug_enable();
@@ -311,10 +320,16 @@ void furi_hal_rtc_set_flag(FuriHalRtcFlag flag) {
 }
 
 void furi_hal_rtc_reset_flag(FuriHalRtcFlag flag) {
-    uint32_t data_reg = furi_hal_rtc_get_register(FuriHalRtcRegisterSystem);
-    SystemReg* data = (SystemReg*)&data_reg;
-    data->flags &= ~flag;
-    furi_hal_rtc_set_register(FuriHalRtcRegisterSystem, data_reg);
+    if(flag <= (1 << 7)) { // Original flags
+        uint32_t data_reg = furi_hal_rtc_get_register(FuriHalRtcRegisterSystem);
+        SystemReg* data = (SystemReg*)&data_reg;
+        data->flags &= ~flag;
+        furi_hal_rtc_set_register(FuriHalRtcRegisterSystem, data_reg);
+    } else { // Extended flags
+        uint32_t ext_flags = furi_hal_rtc_get_register(FuriHalRtcRegisterExtendedFlags);
+        ext_flags &= ~(flag >> 8);
+        furi_hal_rtc_set_register(FuriHalRtcRegisterExtendedFlags, ext_flags);
+    }
 
     if(flag & FuriHalRtcFlagDebug) {
         furi_hal_debug_disable();
@@ -322,9 +337,14 @@ void furi_hal_rtc_reset_flag(FuriHalRtcFlag flag) {
 }
 
 bool furi_hal_rtc_is_flag_set(FuriHalRtcFlag flag) {
-    uint32_t data_reg = furi_hal_rtc_get_register(FuriHalRtcRegisterSystem);
-    SystemReg* data = (SystemReg*)&data_reg;
-    return data->flags & flag;
+    if(flag <= (1 << 7)) { // Original flags
+        uint32_t data_reg = furi_hal_rtc_get_register(FuriHalRtcRegisterSystem);
+        SystemReg* data = (SystemReg*)&data_reg;
+        return data->flags & flag;
+    } else { // Extended flags
+        uint32_t ext_flags = furi_hal_rtc_get_register(FuriHalRtcRegisterExtendedFlags);
+        return ext_flags & (flag >> 8);
+    }
 }
 
 void furi_hal_rtc_set_boot_mode(FuriHalRtcBootMode mode) {
