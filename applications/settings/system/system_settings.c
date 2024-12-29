@@ -188,6 +188,11 @@ const char* const hand_mode[] = {
     "Lefty",
 };
 
+const char* const menu_orient[] = {
+    "Off",
+    "On",
+};
+
 static void hand_orient_changed(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, hand_mode[index]);
@@ -195,6 +200,16 @@ static void hand_orient_changed(VariableItem* item) {
         furi_hal_rtc_set_flag(FuriHalRtcFlagHandOrient);
     } else {
         furi_hal_rtc_reset_flag(FuriHalRtcFlagHandOrient);
+    }
+}
+
+static void menu_orient_changed(VariableItem* item) {
+    uint8_t index = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, menu_orient[index]);
+    if(index) {
+        furi_hal_rtc_set_flag(FuriHalRtcFlagVerticalMenus);
+    } else {
+        furi_hal_rtc_reset_flag(FuriHalRtcFlagVerticalMenus);
     }
 }
 
@@ -325,6 +340,12 @@ SystemSettings* system_settings_alloc(void) {
     VariableItem* item;
     uint8_t value_index;
     app->var_item_list = variable_item_list_alloc();
+
+    item = variable_item_list_add(
+        app->var_item_list, "Vertical Menus", COUNT_OF(menu_orient), menu_orient_changed, app);
+    value_index = furi_hal_rtc_is_flag_set(FuriHalRtcFlagVerticalMenus) ? 1 : 0;
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, menu_orient[value_index]);
 
     item = variable_item_list_add(
         app->var_item_list, "Hand Orient", COUNT_OF(hand_mode), hand_orient_changed, app);
