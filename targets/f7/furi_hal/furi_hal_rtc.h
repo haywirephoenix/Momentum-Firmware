@@ -24,6 +24,7 @@ typedef enum {
     FuriHalRtcFlagLegacySleep = (1 << 5),
     FuriHalRtcFlagStealthMode = (1 << 6),
     FuriHalRtcFlagRandomFilename = (1 << 7),
+    FuriHalRtcFlagVerticalMenus = (1 << 0) << 8,
 } FuriHalRtcFlag;
 
 typedef enum {
@@ -51,7 +52,7 @@ typedef enum {
     /* Index of FS directory entry corresponding to FW update to be applied */
     FuriHalRtcRegisterUpdateFolderFSIndex,
     FuriHalRtcRegisterPinValue, /**< Encoded value of the currently set PIN */
-
+    FuriHalRtcRegisterExtendedFlags,
     FuriHalRtcRegisterMAX, /**< Service value, do not use */
 } FuriHalRtcRegister;
 
