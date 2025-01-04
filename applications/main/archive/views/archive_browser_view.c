@@ -136,45 +136,55 @@ static void render_item_menu(Canvas* canvas, ArchiveBrowserViewModel* model) {
         }
     }
     size_t size_menu = menu_array_size(model->context_menu);
-    const uint8_t menu_height = model->is_vertical ? 58 : 48;
+    //const uint8_t menu_height = model->is_vertical ? 58 : 48;
     // const uint8_t menu_height = 48;
     const uint8_t line_height = 10;
-    const size_t menu_items = model->is_vertical ? 9u : 5u;
-    const uint8_t calc_height = menu_height - ((menu_items - size_menu - 1) * line_height);
+    //const size_t menu_items = model->is_vertical ? 9u : 5u;
+    //const uint8_t calc_height = menu_height - ((menu_items - size_menu - 1) * line_height);
+    const uint8_t calc_height = (size_menu + 1) * line_height + 4;
+
+    const int32_t menuX = model->is_vertical ? 2 : 72;
+    const int32_t menuStrX = model->is_vertical ? 30 : 100;
+    const int32_t menuIconX = model->is_vertical ? 51 : 121;
 
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_box(canvas, 72, 2, 56, calc_height + 4);
+    canvas_draw_box(canvas, menuX, 2, 56, calc_height + 4);
     canvas_set_color(canvas, ColorBlack);
-    elements_slightly_rounded_frame(canvas, 71, 2, 57, calc_height + 4);
+    elements_slightly_rounded_frame(canvas, menuX - 1, 2, 57, calc_height + 4);
 
     canvas_draw_str_aligned(
-        canvas, 100, 11, AlignCenter, AlignBottom, model->menu_manage ? "Manage:" : "Actions:");
+        canvas,
+        menuStrX,
+        11,
+        AlignCenter,
+        AlignBottom,
+        model->menu_manage ? "Manage:" : "Actions:");
     if(model->menu_can_switch) {
         if(model->menu_manage) {
-            canvas_draw_icon(canvas, 74, 4, &I_ButtonLeft_4x7);
+            canvas_draw_icon(canvas, menuX + 2, 4, &I_ButtonLeft_4x7);
         } else {
-            canvas_draw_icon(canvas, 121, 4, &I_ButtonRight_4x7);
+            canvas_draw_icon(canvas, menuIconX, 4, &I_ButtonRight_4x7);
         }
     }
     for(size_t i = 0; i < size_menu; i++) {
         ArchiveContextMenuItem_t* current = menu_array_get(model->context_menu, i);
         canvas_draw_str(
-            canvas, 82, 11 + (i + 1) * line_height, furi_string_get_cstr(current->text));
+            canvas, menuX + 10, 11 + (i + 1) * line_height, furi_string_get_cstr(current->text));
     }
 
-    canvas_draw_icon(canvas, 74, 4 + (model->menu_idx + 1) * line_height, &I_ButtonRight_4x7);
+    canvas_draw_icon(
+        canvas, menuX + 2, 4 + (model->menu_idx + 1) * line_height, &I_ButtonRight_4x7);
 }
 
-static void archive_draw_frame(Canvas* canvas, uint16_t idx, bool scrollbar, bool moving) {
+static void
+    archive_draw_frame(Canvas* canvas, uint16_t idx, bool scrollbar, bool moving, bool is_vertical) {
     uint8_t x_offset = moving ? MOVE_OFFSET : 0;
 
+    const size_t horiz_width = (scrollbar ? 122 : 127) - x_offset;
+    const size_t vert_width = (scrollbar ? 61 : 66) - x_offset;
+    const size_t width = is_vertical ? vert_width : horiz_width;
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_box(
-        canvas,
-        0 + x_offset,
-        15 + idx * FRAME_HEIGHT,
-        (scrollbar ? 122 : 127) - x_offset,
-        FRAME_HEIGHT);
+    canvas_draw_box(canvas, 0 + x_offset, 15 + idx * FRAME_HEIGHT, width, FRAME_HEIGHT);
 
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_dot(canvas, 0 + x_offset, 15 + idx * FRAME_HEIGHT);
@@ -237,7 +247,7 @@ static void draw_list(Canvas* canvas, ArchiveBrowserViewModel* model) {
         size_t scroll_counter = model->scroll_counter;
 
         if(!model->list_loading && model->item_idx == idx) {
-            archive_draw_frame(canvas, i, scrollbar, model->move_fav);
+            archive_draw_frame(canvas, i, scrollbar, model->move_fav, model->is_vertical);
             if(scroll_counter < SCROLL_DELAY) {
                 scroll_counter = 0;
             } else {
@@ -339,8 +349,8 @@ static void archive_view_render(Canvas* canvas, void* mdl) {
     } else if(model->item_cnt > 0) {
         draw_list(canvas, model);
     } else {
-        canvas_draw_str_aligned(
-            canvas, GUI_DISPLAY_WIDTH / 2, 40, AlignCenter, AlignCenter, "Empty");
+        const int gui_width = model->is_vertical ? 32 : GUI_DISPLAY_WIDTH / 2;
+        canvas_draw_str_aligned(canvas, gui_width, 40, AlignCenter, AlignCenter, "Empty");
         if(model->menu) {
             render_item_menu(canvas, model);
         }
