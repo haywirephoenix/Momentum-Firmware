@@ -354,15 +354,14 @@ static void browser_update_offset(FileBrowser* browser) {
         browser->view,
         FileBrowserModel * model,
         {
-            uint32_t list_items = model->is_vertical ? 8u : 5u;
-            uint16_t bounds = model->item_cnt > (list_items - 1) ? 2 : model->item_cnt;
+            uint16_t bounds = model->item_cnt > (LIST_ITEMS - 1) ? 2 : model->item_cnt;
 
-            if((model->item_cnt > (list_items - 1)) &&
+            if((model->item_cnt > (LIST_ITEMS - 1)) &&
                (model->item_idx >= ((int32_t)model->item_cnt - 1))) {
-                model->list_offset = model->item_idx - (list_items - 1);
+                model->list_offset = model->item_idx - (LIST_ITEMS - 1);
             } else if(model->list_offset < model->item_idx - bounds) {
                 model->list_offset = CLAMP(
-                    model->item_idx - (int32_t)(list_items - 2),
+                    model->item_idx - (int32_t)(LIST_ITEMS - 2),
                     (int32_t)model->item_cnt - bounds,
                     0);
             } else if(model->list_offset > model->item_idx - bounds) {
@@ -562,17 +561,12 @@ static void browser_draw_loading(Canvas* canvas, FileBrowserModel* model) {
 
 static void browser_draw_list(Canvas* canvas, FileBrowserModel* model) {
     uint32_t array_size = items_array_size(model->items);
-    // uint32_t list_items = model->is_vertical ? 10u : 5u;
+    bool show_scrollbar = model->item_cnt > LIST_ITEMS;
 
     FuriString* filename;
     filename = furi_string_alloc();
 
-    const uint32_t max_items = model->is_vertical ? 8 : 4; // Max possible based on screen
-    const uint32_t list_items = MIN(model->item_cnt, max_items); // Clamp to actual items
-    const uint32_t max_len = model->is_vertical ? 84 : MAX_LEN_PX;
-    bool show_scrollbar = model->item_cnt > list_items;
-
-    for(uint32_t i = 0; i < list_items; i++) {
+    for(uint32_t i = 0; i < MIN(model->item_cnt, LIST_ITEMS); i++) {
         int32_t idx = CLAMP((uint32_t)(i + model->list_offset), model->item_cnt, 0u);
 
         BrowserItemType item_type;
@@ -627,7 +621,7 @@ static void browser_draw_list(Canvas* canvas, FileBrowserModel* model) {
             canvas,
             15,
             Y_OFFSET + 9 + i * FRAME_HEIGHT,
-            (show_scrollbar ? max_len - 6 : max_len),
+            (show_scrollbar ? MAX_LEN_PX - 6 : MAX_LEN_PX),
             filename,
             scroll_counter,
             (model->item_idx != idx));
