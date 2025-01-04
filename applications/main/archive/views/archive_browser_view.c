@@ -1,6 +1,7 @@
 #include "assets_icons.h"
 #include "toolbox/path.h"
 #include <furi.h>
+#include <furi_hal.h>
 #include "../archive_i.h"
 #include "archive_browser_view.h"
 #include "../helpers/archive_browser.h"
@@ -135,9 +136,11 @@ static void render_item_menu(Canvas* canvas, ArchiveBrowserViewModel* model) {
         }
     }
     size_t size_menu = menu_array_size(model->context_menu);
-    const uint8_t menu_height = 48;
+    const uint8_t menu_height = model->is_vertical ? 58 : 48;
+    // const uint8_t menu_height = 48;
     const uint8_t line_height = 10;
-    const uint8_t calc_height = menu_height - ((MENU_ITEMS - size_menu - 1) * line_height);
+    const size_t menu_items = model->is_vertical ? 9u : 5u;
+    const uint8_t calc_height = menu_height - ((menu_items - size_menu - 1) * line_height);
 
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, 72, 2, 56, calc_height + 4);
@@ -194,11 +197,13 @@ static void archive_draw_loading(Canvas* canvas, ArchiveBrowserViewModel* model)
 
 static void draw_list(Canvas* canvas, ArchiveBrowserViewModel* model) {
     furi_assert(model);
-
     size_t array_size = files_array_size(model->files);
-    bool scrollbar = model->item_cnt > 4;
+    const size_t max_items = model->is_vertical ? 9 : 4;
+    const size_t visible_items = MIN(model->item_cnt, max_items);
+    bool scrollbar = model->item_cnt > visible_items;
+    uint16_t max_len = model->is_vertical ? 84 : MAX_LEN_PX;
 
-    for(uint32_t i = 0; i < MIN(model->item_cnt, MENU_ITEMS); ++i) {
+    for(uint32_t i = 0; i < visible_items; ++i) {
         FuriString* str_buf;
         str_buf = furi_string_alloc();
         int32_t idx = CLAMP((uint32_t)(i + model->list_offset), model->item_cnt, 0u);
@@ -255,7 +260,8 @@ static void draw_list(Canvas* canvas, ArchiveBrowserViewModel* model) {
             canvas,
             15 + x_offset,
             24 + i * FRAME_HEIGHT,
-            ((scrollbar ? MAX_LEN_PX - 6 : MAX_LEN_PX) - x_offset),
+            // ((scrollbar ? MAX_LEN_PX - 6 : MAX_LEN_PX) - x_offset),
+            ((scrollbar ? max_len - 6 : max_len) - x_offset),
             str_buf,
             scroll_counter,
             (model->item_idx != idx));
@@ -585,6 +591,11 @@ ArchiveBrowserView* browser_alloc(void) {
     browser->view = view_alloc();
     view_allocate_model(browser->view, ViewModelTypeLocking, sizeof(ArchiveBrowserViewModel));
     view_set_context(browser->view, browser);
+
+    const bool is_vertical = (furi_hal_rtc_is_flag_set(FuriHalRtcFlagVerticalMenus));
+
+    if(is_vertical) view_set_orientation(browser->view, ViewOrientationVertical);
+
     view_set_draw_callback(browser->view, archive_view_render);
     view_set_input_callback(browser->view, archive_view_input);
     view_set_enter_callback(browser->view, browser_view_enter);
@@ -601,6 +612,7 @@ ArchiveBrowserView* browser_alloc(void) {
             files_array_init(model->files);
             menu_array_init(model->context_menu);
             model->tab_idx = TAB_DEFAULT;
+            model->is_vertical = is_vertical;
         },
         true);
 

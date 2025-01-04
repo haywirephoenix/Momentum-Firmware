@@ -3,6 +3,7 @@
 #include "../helpers/archive_files.h"
 #include "../helpers/archive_favorites.h"
 
+#include "archive/archive.h"
 #include <gui/gui_i.h>
 #include <gui/view.h>
 #include <gui/canvas.h>
@@ -117,7 +118,7 @@ typedef struct {
     int32_t array_offset;
     int32_t list_offset;
     size_t scroll_counter;
-
+    bool is_vertical;
     int32_t button_held_for_ticks;
 } ArchiveBrowserViewModel;
 

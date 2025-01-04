@@ -3,11 +3,12 @@
 #include <assets_icons.h>
 #include <gui/elements.h>
 #include <furi.h>
+#include <furi_hal.h>
 #include <m-array.h>
 
 struct Submenu {
     View* view;
-
+    FuriTimer* scroll_timer;
     FuriTimer* locked_timer;
 };
 
@@ -66,7 +67,7 @@ typedef struct {
     FuriString* header;
     size_t position;
     size_t window_position;
-
+    size_t scroll_counter;
     bool locked_message_visible;
     bool is_vertical;
 } SubmenuModel;
@@ -126,16 +127,26 @@ static void submenu_view_draw_callback(Canvas* canvas, void* _model) {
                     &I_Lock_7x8);
             }
 
-            FuriString* disp_str = furi_string_alloc_set(SubmenuItemArray_cref(it)->label);
-            elements_string_fit_width(canvas, disp_str, item_width - (is_locked ? 21 : 11));
+            // FuriString* disp_str = furi_string_alloc_set(SubmenuItemArray_cref(it)->label);
 
-            canvas_draw_str(
+            // elements_string_fit_width(canvas, disp_str, item_width - (is_locked ? 21 : 11));
+
+            // canvas_draw_str(
+            //     canvas,
+            //     6,
+            //     y_offset + (item_position * item_height) + item_height - 4,
+            //     furi_string_get_cstr(disp_str));
+
+            elements_scrollable_text_line(
                 canvas,
                 6,
                 y_offset + (item_position * item_height) + item_height - 4,
-                furi_string_get_cstr(disp_str));
+                item_width - (is_locked ? 21 : 11),
+                SubmenuItemArray_cref(it)->label,
+                (position == model->position) ? model->scroll_counter : 0,
+                true);
 
-            furi_string_free(disp_str);
+            // furi_string_free(disp_str);
         }
 
         position++;
@@ -167,6 +178,11 @@ static void submenu_view_draw_callback(Canvas* canvas, void* _model) {
             furi_string_get_cstr(
                 SubmenuItemArray_get(model->items, model->position)->locked_message));
     }
+}
+
+static void submenu_scroll_timer_callback(void* context) {
+    Submenu* submenu = context;
+    with_view_model(submenu->view, SubmenuModel * model, { model->scroll_counter++; }, true);
 }
 
 static bool submenu_view_input_callback(InputEvent* event, void* context) {
@@ -227,8 +243,16 @@ void submenu_timer_callback(void* context) {
 Submenu* submenu_alloc(void) {
     Submenu* submenu = malloc(sizeof(Submenu));
     submenu->view = view_alloc();
+    submenu->scroll_timer =
+        furi_timer_alloc(submenu_scroll_timer_callback, FuriTimerTypePeriodic, submenu);
+    furi_timer_start(submenu->scroll_timer, 333);
     view_set_context(submenu->view, submenu);
     view_allocate_model(submenu->view, ViewModelTypeLocking, sizeof(SubmenuModel));
+
+    const bool is_vertical = (furi_hal_rtc_is_flag_set(FuriHalRtcFlagVerticalMenus));
+
+    if(is_vertical) view_set_orientation(submenu->view, ViewOrientationVertical);
+
     view_set_draw_callback(submenu->view, submenu_view_draw_callback);
     view_set_input_callback(submenu->view, submenu_view_input_callback);
 
@@ -238,6 +262,7 @@ Submenu* submenu_alloc(void) {
         submenu->view,
         SubmenuModel * model,
         {
+            model->is_vertical = is_vertical;
             SubmenuItemArray_init(model->items);
             model->position = 0;
             model->window_position = 0;
@@ -259,6 +284,9 @@ void submenu_free(Submenu* submenu) {
             SubmenuItemArray_clear(model->items);
         },
         true);
+
+    furi_timer_stop(submenu->scroll_timer);
+    furi_timer_free(submenu->scroll_timer);
     furi_timer_stop(submenu->locked_timer);
     furi_timer_free(submenu->locked_timer);
     view_free(submenu->view);
