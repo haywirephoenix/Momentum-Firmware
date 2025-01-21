@@ -689,7 +689,6 @@ void cli_command_clear(Cli* cli, FuriString* args, void* context) {
     printf("\e[2J\e[H");
 }
 
-CLI_PLUGIN_WRAPPER("info", cli_command_info)
 CLI_PLUGIN_WRAPPER("src", cli_command_src)
 CLI_PLUGIN_WRAPPER("neofetch", cli_command_neofetch)
 CLI_PLUGIN_WRAPPER("help", cli_command_help)
@@ -703,10 +702,9 @@ CLI_PLUGIN_WRAPPER("i2c", cli_command_i2c)
 CLI_PLUGIN_WRAPPER("clear", cli_command_clear)
 
 void cli_commands_init(Cli* cli) {
-    cli_add_command(cli, "!", CliCommandFlagParallelSafe, cli_command_info_wrapper, (void*)true);
-    cli_add_command(cli, "info", CliCommandFlagParallelSafe, cli_command_info_wrapper, NULL);
-    cli_add_command(
-        cli, "device_info", CliCommandFlagParallelSafe, cli_command_info_wrapper, (void*)true);
+    cli_add_command(cli, "!", CliCommandFlagParallelSafe, cli_command_info, (void*)true);
+    cli_add_command(cli, "info", CliCommandFlagParallelSafe, cli_command_info, NULL);
+    cli_add_command(cli, "device_info", CliCommandFlagParallelSafe, cli_command_info, (void*)true);
     cli_add_command(cli, "source", CliCommandFlagParallelSafe, cli_command_src_wrapper, NULL);
     cli_add_command(cli, "src", CliCommandFlagParallelSafe, cli_command_src_wrapper, NULL);
     cli_add_command(

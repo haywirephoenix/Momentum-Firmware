@@ -29,6 +29,7 @@ typedef enum {
     MenuStyleC64,
     MenuStyleCompact,
     MenuStyleMNTM,
+    MenuStyleCoverFlow,
     MenuStyleCount,
 } MenuStyle;
 
@@ -54,6 +55,14 @@ typedef union __attribute__((packed)) {
     uint32_t value;
 } ScreenFrameColor;
 
+typedef enum {
+    BrowserPathOff,
+    BrowserPathCurrent,
+    BrowserPathBrief,
+    BrowserPathFull,
+    BrowserPathModeCount,
+} BrowserPathMode;
+
 typedef struct {
     char asset_pack[ASSET_PACKS_NAME_LEN];
     uint32_t anim_speed;
@@ -78,6 +87,7 @@ typedef struct {
     bool sort_dirs_first;
     bool show_hidden_files;
     bool show_internal_tab;
+    BrowserPathMode browser_path_mode;
     uint32_t favorite_timeout;
     bool dark_mode;
     bool rgb_backlight;
